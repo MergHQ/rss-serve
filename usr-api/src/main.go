@@ -106,6 +106,7 @@ func startConsuming(reader *kafka.Reader, db *sqlx.DB) {
 
 	for {
 		message, err := reader.ReadMessage(context.Background())
+
 		if err != nil {
 			log.Fatalln(err)
 		}

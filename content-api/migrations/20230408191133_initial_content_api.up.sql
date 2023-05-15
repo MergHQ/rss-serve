@@ -10,6 +10,6 @@ CREATE TABLE feed_content (
   feed_id    UUID NOT NULL,
   title      TEXT NOT NULL,
   img_url    TEXT,
-  "link"     TEXT NOT NULL,
+  "link"     TEXT UNIQUE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
