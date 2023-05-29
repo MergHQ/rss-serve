@@ -8,8 +8,9 @@ CREATE TABLE user_feeds (
 CREATE TABLE feed_content (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   feed_id    UUID NOT NULL,
+  "guid"     TEXT UNIQUE NOT NULL, 
   title      TEXT NOT NULL,
   img_url    TEXT,
-  "link"     TEXT UNIQUE NOT NULL,
+  "link"     TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

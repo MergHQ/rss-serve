@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "citext";
 CREATE TABLE feeds (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   url        CITEXT NOT NULL UNIQUE,
+  title      CITEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

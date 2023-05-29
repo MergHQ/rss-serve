@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -15,26 +14,16 @@ import (
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	kafka "github.com/segmentio/kafka-go"
 )
 
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
 	jwtSecret := os.Getenv("JWT_SECRET")
-	kafkaBrokerUrl := os.Getenv("KAFKA_BROKER_URL")
 
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	kafkaReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{kafkaBrokerUrl},
-		GroupID:  "rss-serve",
-		Topic:    "update-user-activity",
-		MinBytes: 1,
-		MaxBytes: 5e6,
-	})
 
 	app := fiber.New()
 
@@ -97,20 +86,5 @@ func main() {
 		})
 	})
 
-	go startConsuming(kafkaReader, db)
 	log.Fatalln(app.Listen(":3000"))
-}
-
-func startConsuming(reader *kafka.Reader, db *sqlx.DB) {
-	defer reader.Close()
-
-	for {
-		message, err := reader.ReadMessage(context.Background())
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		fmt.Println(message)
-	}
 }
