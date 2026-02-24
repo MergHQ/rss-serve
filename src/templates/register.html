@@ -1,0 +1,14 @@
+    <div class="content">
+        <h1>Register</h1>
+        
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        
+        <form action="/register" method="POST">
+            <p>Click register to create a new account. Your user ID will be generated automatically.</p>
+            <button type="submit" class="btn">Register</button>
+        </form>
+        
+        <p style="margin-top: 20px;">Already have an account? <a href="/login">Login</a></p>
+    </div>

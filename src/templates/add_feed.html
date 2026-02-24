@@ -1,0 +1,19 @@
+    <div class="content">
+        <h1>Add RSS Feed</h1>
+        
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        
+        {{if .Success}}
+        <div class="success">{{.Success}}</div>
+        {{end}}
+        
+        <form action="/add-feed" method="POST">
+            <div class="form-group">
+                <label for="url">RSS Feed URL</label>
+                <input type="text" id="url" name="url" placeholder="https://example.com/rss.xml" required>
+            </div>
+            <button type="submit" class="btn">Add Feed</button>
+        </form>
+    </div>

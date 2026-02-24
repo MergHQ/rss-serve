@@ -1,0 +1,54 @@
+    <div class="content">
+        <h1>Your RSS Feed</h1>
+        
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        
+        {{if .Success}}
+        <div class="success">{{.Success}}</div>
+        {{end}}
+        
+        {{range .Content}}
+        <div class="item">
+            <div class="item-title"><a href="{{.Link}}" target="_blank">{{.Title}}</a></div>
+            <div class="item-meta">
+                {{if .ImgUrl}}<img src="{{.ImgUrl}}" width="50" height="50" style="vertical-align: middle; margin-right: 10px;">{{end}}
+                {{if .PublishedAt}}{{.PublishedAt | formatDate}}{{else}}{{.CreatedAt | formatDate}}{{end}}
+                {{if .FeedTitle}}<span style="margin-left: 10px; color: #666;">from <a href="/content?feed_id={{.FeedId}}" style="color: #666; text-decoration: underline;">{{.FeedTitle}}</a></span>{{end}}
+            </div>
+        </div>
+        {{end}}
+        
+        {{if eq (len .Content) 0}}
+        <p>No content yet. <a href="/add-feed">Add a feed</a> to get started.</p>
+        {{end}}
+
+        {{if gt .TotalPages 1}}
+        <div class="pagination" style="margin-top: 20px; text-align: center;">
+            {{if gt .CurrentPage 1}}
+            <a href="/content?page={{minus .CurrentPage 1}}&page_size={{.PageSize}}" style="margin-right: 10px;">← Previous</a>
+            {{end}}
+
+            {{range $i := seq 1 .TotalPages}}
+            {{if eq $i $.CurrentPage}}
+            <span style="font-weight: bold; margin: 0 5px;">{{$i}}</span>
+            {{else}}
+            <a href="/content?page={{$i}}&page_size={{$.PageSize}}" style="margin: 0 5px;">{{$i}}</a>
+            {{end}}
+            {{end}}
+
+            {{if lt .CurrentPage .TotalPages}}
+            <a href="/content?page={{add .CurrentPage 1}}&page_size={{.PageSize}}" style="margin-left: 10px;">Next →</a>
+            {{end}}
+        </div>
+        {{end}}
+
+        {{if gt .TotalCount 0}}
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            Showing {{.CurrentPage | mul .PageSize | minus .PageSize | add 1}}-
+            {{.CurrentPage | mul .PageSize}}
+            of {{.TotalCount}} items
+        </div>
+        {{end}}
+    </div>

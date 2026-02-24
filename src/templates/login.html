@@ -1,0 +1,23 @@
+    <div class="content">
+        <h1>Login</h1>
+        
+        {{if .NewUserID}}
+        <div class="success">
+            Account created successfully! Your User ID is: <strong>{{.NewUserID}}</strong>
+        </div>
+        {{end}}
+        
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label for="userId">User ID</label>
+                <input type="text" id="userId" name="userId" required {{if .NewUserID}}value="{{.NewUserID}}"{{end}}>
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+        
+        <p style="margin-top: 20px;">Don't have an account? <a href="/register">Register</a></p>
+    </div>

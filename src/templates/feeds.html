@@ -1,0 +1,27 @@
+    <div class="content">
+        <h1>Your Feeds</h1>
+        
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        
+        {{if .Success}}
+        <div class="success">{{.Success}}</div>
+        {{end}}
+        
+        {{range .Feeds}}
+        <div class="feed-item">
+            <div class="feed-title">
+                <a href="{{.Url}}" target="_blank">{{.Title}}</a><br>
+                <small>{{.Url}}</small>
+            </div>
+            <form action="/feeds/{{.Id}}/delete" method="POST" style="margin-left: 10px;">
+                <button type="submit" class="delete-btn">Delete</button>
+            </form>
+        </div>
+        {{end}}
+        
+        {{if eq (len .Feeds) 0}}
+        <p>No feeds yet. <a href="/add-feed">Add your first feed</a>.</p>
+        {{end}}
+    </div>
