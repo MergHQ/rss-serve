@@ -1,9 +1,0 @@
-resources:
-  - namespace.yaml
-  - deployment.yaml
-  - service.yaml
-  - ingress.yaml
-  - configmap.yaml
-  - jwt-secret.yaml
-
-namespace: rss-serve
