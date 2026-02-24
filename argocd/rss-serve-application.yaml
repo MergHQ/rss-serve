@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rss-serve
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/hugis/rss-serve.git
+    targetRevision: HEAD
+    path: kustomize/overlays/production
+    plugin:
+      name: kustomize
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rss-serve
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
