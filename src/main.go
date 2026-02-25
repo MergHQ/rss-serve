@@ -167,7 +167,7 @@ func main() {
 		}
 
 		services.UpdateActive(db, usr.Id)
-		return c.Redirect("/feeds")
+		return c.Redirect("/content")
 	})
 
 	app.Get("/register", func(c *fiber.Ctx) error {
@@ -208,9 +208,9 @@ func main() {
 			page = 1
 		}
 
-		pageSize, err := strconv.Atoi(c.Query("page_size", "10"))
+		pageSize, err := strconv.Atoi(c.Query("page_size", "25"))
 		if err != nil || pageSize < 1 {
-			pageSize = 10
+			pageSize = 25
 		}
 
 		content, err := services.GetContent(db, userID, page, pageSize)

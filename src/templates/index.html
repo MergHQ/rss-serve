@@ -11,11 +11,13 @@
         
         {{range .Content}}
         <div class="item">
-            <div class="item-title"><a href="{{.Link}}" target="_blank">{{.Title}}</a></div>
-            <div class="item-meta">
-                {{if .ImgUrl}}<img src="{{.ImgUrl}}" width="50" height="50" style="vertical-align: middle; margin-right: 10px;">{{end}}
-                {{if .PublishedAt}}{{.PublishedAt | formatDate}}{{else}}{{.CreatedAt | formatDate}}{{end}}
-                {{if .FeedTitle}}<span style="margin-left: 10px; color: #666;">from <a href="/content?feed_id={{.FeedId}}" style="color: #666; text-decoration: underline;">{{.FeedTitle}}</a></span>{{end}}
+            {{if .ImgUrl}}<img src="{{.ImgUrl}}" width="50" height="50" style="vertical-align: middle; margin-right: 10px; object-fit: contain;">{{end}}
+            <div class="item-content">
+                <div class="item-title"><a href="{{.Link}}" target="_blank">{{.Title}}</a></div>
+                <div class="item-meta">
+                    {{if .PublishedAt}}{{.PublishedAt | formatDate}}{{else}}{{.CreatedAt | formatDate}}{{end}}
+                    {{if .FeedTitle}}<span style="margin-left: 10px; color: #666;">from {{.FeedTitle}}</span>{{end}}
+                </div>
             </div>
         </div>
         {{end}}
