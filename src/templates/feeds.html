@@ -9,16 +9,74 @@
         <div class="success">{{.Success}}</div>
         {{end}}
         
+        <!-- Tag Management Section -->
+        <div class="tag-management" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+            <h3 style="margin-top: 0;">Manage Tags</h3>
+            <form action="/tags/create" method="POST" style="margin-bottom: 10px;">
+                <input type="text" name="tag_name" placeholder="New tag name" required style="padding: 5px; margin-right: 5px;">
+                <button type="submit" style="padding: 5px 10px;">Create Tag</button>
+            </form>
+            
+            <div class="existing-tags">
+                <strong>Your Tags:</strong>
+                {{if .Tags}}
+                {{range .Tags}}
+                <span class="tag" style="display: inline-block; margin: 5px; padding: 3px 8px; background: #e0e0e0; border-radius: 3px;">
+                    {{.Name}}
+                    <a href="/tags/{{.Id}}/delete" style="color: #888; margin-left: 5px; text-decoration: none;" onclick="return confirm('Delete this tag?')">×</a>
+                </span>
+                {{end}}
+                {{end}}
+                {{if not .Tags}}
+                <span style="color: #666;">No tags yet. Create some to organize your feeds!</span>
+                {{else if eq (len .Tags) 0}}
+                <span style="color: #666;">No tags yet. Create some to organize your feeds!</span>
+                {{end}}
+            </div>
+        </div>
+        
+        {{if .Feeds}}
         {{range .Feeds}}
-        <div class="feed-item">
+        {{$feedId := .Id}}
+        <div class="feed-item" style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
             <div class="feed-title">
                 <a href="{{.Url}}" target="_blank">{{.Title}}</a><br>
                 <small>{{.Url}}</small>
             </div>
-            <form action="/feeds/{{.Id}}/delete" method="POST" style="margin-left: 10px;">
+            
+            <!-- Feed Tags -->
+            <div class="feed-tags" style="margin: 10px 0;">
+                <strong>Tags:</strong>
+                {{if .Tags}}
+                {{range .Tags}}
+                <span class="tag" style="display: inline-block; margin: 3px; padding: 3px 8px; background: #e0e0e0; border-radius: 3px; font-size: 12px;">
+                    {{.Name}}
+                    <form action="/feeds/{{$feedId}}/tags/{{.Id}}/remove" method="POST" style="display: inline; margin-left: 3px;">
+                        <button type="submit" style="background: none; border: none; color: #888; padding: 0; cursor: pointer; font-size: 12px;" onclick="return confirm('Remove this tag from feed?')">×</button>
+                    </form>
+                </span>
+                {{end}}
+                {{end}}
+                
+                <!-- Add Tag to Feed -->
+                <form action="/feeds/{{$feedId}}/tags/add" method="POST" style="display: inline; margin-left: 10px;">
+                    <select name="tag_id" required style="padding: 3px; font-size: 12px;">
+                        <option value="">Add tag...</option>
+                        {{if $.AllTags}}
+                        {{range $.AllTags}}
+                        <option value="{{.Id}}">{{.Name}}</option>
+                        {{end}}
+                        {{end}}
+                    </select>
+                    <button type="submit" style="padding: 3px 6px; font-size: 12px; margin-left: 3px;">+</button>
+                </form>
+            </div>
+            
+            <form action="/feeds/{{$feedId}}/delete" method="POST" style="margin-left: 10px;">
                 <button type="submit" class="delete-btn">Delete</button>
             </form>
         </div>
+        {{end}}
         {{end}}
         
         {{if eq (len .Feeds) 0}}

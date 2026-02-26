@@ -1,6 +1,8 @@
 package services
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -130,6 +132,14 @@ func DeleteUserFeed(db *sqlx.DB, userId string, feedId string) error {
 	return nil
 }
 
+// Tag service types and functions
+type Tag struct {
+	Id        string `json:"id"`
+	UserId    string `db:"user_id" json:"userId"`
+	Name      string `json:"name"`
+	CreatedAt string `db:"created_at" json:"createdAt"`
+}
+
 // Content service types and functions
 type FeedContent struct {
 	Id          string `json:"id"`
@@ -147,6 +157,54 @@ type FeedContentWithSource struct {
 	FeedTitle string `db:"feed_title" json:"feedTitle"`
 }
 
+// Extended feed type with tags
+type FeedWithTags struct {
+	Feed
+	Tags TagsArray `json:"tags" db:"tags"`
+}
+
+// TagsArray is a custom type that can scan JSON arrays into []Tag
+type TagsArray []Tag
+
+// Scan implements the sql.Scanner interface for TagsArray
+func (ta *TagsArray) Scan(src interface{}) error {
+	if src == nil {
+		*ta = []Tag{}
+		return nil
+	}
+
+	switch v := src.(type) {
+	case []byte:
+		// Handle JSON data
+		var tags []Tag
+		err := json.Unmarshal(v, &tags)
+		if err != nil {
+			return err
+		}
+		*ta = tags
+	case string:
+		// Handle JSON string
+		var tags []Tag
+		err := json.Unmarshal([]byte(v), &tags)
+		if err != nil {
+			return err
+		}
+		*ta = tags
+	default:
+		return fmt.Errorf("unsupported type for TagsArray: %T", src)
+	}
+
+	return nil
+}
+
+// Value implements the driver.Valuer interface for TagsArray
+func (ta TagsArray) Value() (driver.Value, error) {
+	if len(ta) == 0 {
+		return []byte("[]"), nil
+	}
+	return json.Marshal(ta)
+}
+
 type NewFeedContent struct {
 	FeedId      string `db:"feed_id"`
 	Guid        string
@@ -161,7 +219,7 @@ type UpdateableContent struct {
 	Url    string `json:"url"`
 }
 
-func GetContent(db *sqlx.DB, userId string, page int, pageSize int) ([]FeedContentWithSource, error) {
+func GetContent(db *sqlx.DB, userId string, page int, pageSize int, tagId string) ([]FeedContentWithSource, error) {
 	feedContent := []FeedContentWithSource{}
 	err := db.Select(
 		&feedContent,
@@ -171,12 +229,20 @@ func GetContent(db *sqlx.DB, userId string, page int, pageSize int) ([]FeedConte
 			 FROM feed_content fc
 			 INNER JOIN feeds f ON (f.id = fc.feed_id)
 			 INNER JOIN user_feeds uf ON (uf.feed_id = fc.feed_id)
-			 WHERE uf.user_id = $1
+		 	 LEFT JOIN feed_tags ft ON (ft.feed_id = uf.feed_id)
+		  	 LEFT JOIN tags t ON (ft.tag_id = t.id and t.user_id = $1)
+		 	 WHERE (
+		 	 	CASE WHEN $4 = '*' THEN TRUE
+		 	 	ELSE t.id = $4::uuid
+		 	 	END
+		 	 ) AND
+		 	 uf.user_id = $1
 			 ORDER BY COALESCE(fc.published_at, fc.created_at) DESC
 			 LIMIT $2 OFFSET $3`,
 		userId,
 		pageSize,
 		(page-1)*pageSize,
+		tagId,
 	)
 
 	if err != nil {
@@ -186,15 +252,23 @@ func GetContent(db *sqlx.DB, userId string, page int, pageSize int) ([]FeedConte
 	return feedContent, nil
 }
 
-func GetContentCount(db *sqlx.DB, userId string) (int, error) {
+func GetContentCount(db *sqlx.DB, userId string, tagId string) (int, error) {
 	var count int
 	err := db.Get(
 		&count,
 		`SELECT COUNT(*)
-		 FROM feed_content fc
+		 	FROM feed_content fc
 		 INNER JOIN user_feeds uf ON (uf.feed_id = fc.feed_id)
-		 WHERE uf.user_id = $1`,
+		 LEFT JOIN feed_tags ft ON (ft.feed_id = uf.feed_id)
+		 LEFT JOIN tags t ON (ft.tag_id = t.id and t.user_id = $1)
+		 WHERE (
+		 	CASE WHEN $2 = '*' THEN TRUE
+		 	ELSE t.id = $2::uuid
+		 	END
+		 ) AND
+		 uf.user_id = $1`,
 		userId,
+		tagId,
 	)
 
 	if err != nil {
@@ -275,4 +349,127 @@ func UpdateUserContent(db *sqlx.DB, userId string) error {
 	}
 
 	return nil
+}
+
+// Tag service functions
+
+func GetUserTags(db *sqlx.DB, userId string) ([]Tag, error) {
+	tags := []Tag{}
+	err := db.Select(
+		&tags,
+		`SELECT * FROM tags WHERE user_id = $1 ORDER BY name ASC`,
+		userId,
+	)
+
+	if err != nil {
+		return tags, err
+	}
+
+	return tags, nil
+}
+
+func CreateTag(db *sqlx.DB, userId string, name string) (Tag, error) {
+	tag := Tag{}
+	err := db.Get(
+		&tag,
+		`INSERT INTO tags (user_id, name) VALUES ($1, $2)
+		 RETURNING *`,
+		userId,
+		name,
+	)
+
+	if err != nil {
+		return tag, err
+	}
+
+	return tag, nil
+}
+
+func DeleteTag(db *sqlx.DB, userId string, tagId string) error {
+	_, err := db.Exec(
+		`DELETE FROM tags WHERE id = $1 AND user_id = $2`,
+		tagId,
+		userId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetFeedTags(db *sqlx.DB, feedId string) ([]Tag, error) {
+	tags := []Tag{}
+	err := db.Select(
+		&tags,
+		`SELECT t.* FROM tags t
+		 INNER JOIN feed_tags ft ON (ft.tag_id = t.id)
+		 WHERE ft.feed_id = $1`,
+		feedId,
+	)
+
+	if err != nil {
+		return tags, err
+	}
+
+	return tags, nil
+}
+
+func AddTagToFeed(db *sqlx.DB, feedId string, tagId string) error {
+	_, err := db.Exec(
+		`INSERT INTO feed_tags (feed_id, tag_id) VALUES ($1, $2)
+		 ON CONFLICT DO NOTHING`,
+		feedId,
+		tagId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func RemoveTagFromFeed(db *sqlx.DB, feedId string, tagId string) error {
+	_, err := db.Exec(
+		`DELETE FROM feed_tags WHERE feed_id = $1 AND tag_id = $2`,
+		feedId,
+		tagId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetUserFeedsWithTags(db *sqlx.DB, userId string) ([]FeedWithTags, error) {
+	feeds := []FeedWithTags{}
+	err := db.Select(
+		&feeds,
+		`SELECT 
+			f.*,
+			COALESCE(
+				(SELECT json_agg(t) FROM (
+					SELECT t.id, t.user_id, t.name, t.created_at 
+					FROM tags t 
+					INNER JOIN feed_tags ft ON ft.tag_id = t.id 
+					WHERE ft.feed_id = f.id AND t.user_id = $1
+				) t),
+				'[]'::json
+			) as tags
+		FROM feeds f
+		INNER JOIN user_feeds uf ON (uf.feed_id = f.id)
+		WHERE uf.user_id = $1
+		ORDER BY f.title ASC`,
+		userId,
+	)
+
+	if err != nil {
+		return feeds, err
+	}
+
+	return feeds, nil
 }

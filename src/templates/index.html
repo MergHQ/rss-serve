@@ -9,6 +9,22 @@
         <div class="success">{{.Success}}</div>
         {{end}}
         
+        <!-- Tag Filtering -->
+        <div class="tag-filter" style="margin-bottom: 15px;">
+            <form method="GET" action="/content" style="display: flex; gap: 10px; align-items: center;">
+                <select name="tag_id" style="padding: 5px;">
+                    <option value="">All Feeds</option>
+                    {{range .Tags}}
+                    <option value="{{.Id}}" {{if eq .Id $.CurrentTagId}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+                <button type="submit" style="padding: 5px 10px;">Filter</button>
+                {{if .CurrentTagId}}
+                <a href="/content" style="padding: 5px 10px; background: #f0f0f0; border-radius: 3px; text-decoration: none; color: #333;">Clear Filter</a>
+                {{end}}
+            </form>
+        </div>
+        
         {{range .Content}}
         <div class="item">
             {{if .ImgUrl}}<img src="{{.ImgUrl}}" width="50" height="50" style="vertical-align: middle; margin-right: 10px; object-fit: contain;">{{end}}
@@ -29,19 +45,19 @@
         {{if gt .TotalPages 1}}
         <div class="pagination" style="margin-top: 20px; text-align: center;">
             {{if gt .CurrentPage 1}}
-            <a href="/content?page={{minus .CurrentPage 1}}&page_size={{.PageSize}}" style="margin-right: 10px;">← Previous</a>
+            <a href="/content?page={{minus .CurrentPage 1}}&page_size={{.PageSize}}{{if .CurrentTagId}}&tag_id={{.CurrentTagId}}{{end}}" style="margin-right: 10px;">← Previous</a>
             {{end}}
 
             {{range $i := seq 1 .TotalPages}}
             {{if eq $i $.CurrentPage}}
             <span style="font-weight: bold; margin: 0 5px;">{{$i}}</span>
             {{else}}
-            <a href="/content?page={{$i}}&page_size={{$.PageSize}}" style="margin: 0 5px;">{{$i}}</a>
+            <a href="/content?page={{$i}}&page_size={{$.PageSize}}{{if $.CurrentTagId}}&tag_id={{$.CurrentTagId}}{{end}}" style="margin: 0 5px;">{{$i}}</a>
             {{end}}
             {{end}}
 
             {{if lt .CurrentPage .TotalPages}}
-            <a href="/content?page={{add .CurrentPage 1}}&page_size={{.PageSize}}" style="margin-left: 10px;">Next →</a>
+            <a href="/content?page={{add .CurrentPage 1}}&page_size={{.PageSize}}{{if .CurrentTagId}}&tag_id={{.CurrentTagId}}{{end}}" style="margin-left: 10px;">Next →</a>
             {{end}}
         </div>
         {{end}}

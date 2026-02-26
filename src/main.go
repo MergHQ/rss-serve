@@ -213,7 +213,24 @@ func main() {
 			pageSize = 25
 		}
 
-		content, err := services.GetContent(db, userID, page, pageSize)
+		tagId := c.Query("tag_id", "*")
+
+		tags, err := services.GetUserTags(db, userID)
+		if err != nil {
+			fmt.Println(err)
+
+			return c.Render("index", fiber.Map{
+				"Title":       "Your RSS Feed",
+				"Error":       "Failed to load content",
+				"Content":     []services.FeedContentWithSource{},
+				"CurrentPage": 0,
+				"TotalPages":  0,
+				"PageSize":    0,
+				"TotalCount":  0,
+			}, "base")
+		}
+
+		content, err := services.GetContent(db, userID, page, pageSize, tagId)
 		if err != nil {
 			fmt.Println(err)
 						
@@ -229,7 +246,7 @@ func main() {
 		}
 
 		// Get total count for pagination
-		totalCount, err := services.GetContentCount(db, userID)
+		totalCount, err := services.GetContentCount(db, userID, tagId)
 		if err != nil {
 			fmt.Println(err)
 
@@ -257,25 +274,38 @@ func main() {
 			"TotalPages":  totalPages,
 			"PageSize":    pageSize,
 			"TotalCount":  totalCount,
+			"Tags":        tags,
+			"CurrentTagId": tagId,
 		}, "base")
 	})
 
 	app.Get("/feeds", authMiddleware, func(c *fiber.Ctx) error {
 		userID := c.Locals("user_id").(string)
 
-		feeds, err := services.GetUserFeeds(db, userID)
+		// Get all tags for the user
+		tags, err := services.GetUserTags(db, userID)
+		if err != nil {
+			fmt.Println(err)
+			tags = []services.Tag{}
+		}
+
+		// Get feeds with their tags
+		feeds, err := services.GetUserFeedsWithTags(db, userID)
 		if err != nil {
 			fmt.Println(err)
 			return c.Render("feeds", fiber.Map{
 				"Title": "Your Feeds",
 				"Error": "Failed to load feeds",
-				"Feeds": []services.Feed{},
+				"Feeds": []services.FeedWithTags{},
+				"Tags": tags,
 			}, "base")
 		}
 
 		return c.Render("feeds", fiber.Map{
 			"Title": "Your Feeds",
 			"Feeds": feeds,
+			"Tags": tags,
+			"AllTags": tags, // For the add tag dropdown
 		}, "base")
 	})
 
@@ -315,6 +345,63 @@ func main() {
 		feedId := c.Params("feedId")
 
 		err := services.DeleteUserFeed(db, userID, feedId)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return c.Redirect("/feeds")
+	})
+
+	// Tag management routes
+	app.Post("/tags/create", authMiddleware, func(c *fiber.Ctx) error {
+		userID := c.Locals("user_id").(string)
+		tagName := c.FormValue("tag_name")
+
+		if tagName == "" {
+			return c.Redirect("/feeds")
+		}
+
+		_, err := services.CreateTag(db, userID, tagName)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return c.Redirect("/feeds")
+	})
+
+	app.Get("/tags/:tagId/delete", authMiddleware, func(c *fiber.Ctx) error {
+		userID := c.Locals("user_id").(string)
+		tagId := c.Params("tagId")
+
+		err := services.DeleteTag(db, userID, tagId)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return c.Redirect("/feeds")
+	})
+
+	app.Post("/feeds/:feedId/tags/add", authMiddleware, func(c *fiber.Ctx) error {
+		feedId := c.Params("feedId")
+		tagId := c.FormValue("tag_id")
+
+		if tagId == "" {
+			return c.Redirect("/feeds")
+		}
+
+		err := services.AddTagToFeed(db, feedId, tagId)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return c.Redirect("/feeds")
+	})
+
+	app.Post("/feeds/:feedId/tags/:tagId/remove", authMiddleware, func(c *fiber.Ctx) error {
+		feedId := c.Params("feedId")
+		tagId := c.Params("tagId")
+
+		err := services.RemoveTagFromFeed(db, feedId, tagId)
 		if err != nil {
 			fmt.Println(err)
 		}
